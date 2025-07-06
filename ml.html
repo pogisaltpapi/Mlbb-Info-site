@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moonton Proxyless Checker</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Custom CSS for background, snowflakes, and font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1A202C 0%, #2D3748 100%); /* Dark Blue Gradient */
+            min-height: 100vh; /* Ensure body takes full viewport height */
+            display: flex;
+            flex-direction: column; /* Allow content to stack vertically */
+            align-items: center; /* Center horizontally */
+            justify-content: flex-start; /* Start content from top, allow scrolling down */
+            padding: 1rem; /* Add overall padding to ensure space around the card */
+            overflow-y: auto; /* Allow body to scroll if content overflows */
+        }
+
+        /* Snowflake effect */
+        .snowflakes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Allow clicks to pass through */
+            z-index: -1; /* Behind content */
+        }
+
+        .snowflake {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            opacity: 0;
+            animation: fall linear infinite;
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(-10vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(100vh) translateX(5vw); /* Slight horizontal drift */
+                opacity: 0;
+            }
+        }
+
+        /* Generate multiple snowflakes with different sizes, delays, and durations */
+        .snowflake:nth-child(1) { width: 3px; height: 3px; left: 10%; animation-duration: 10s; animation-delay: 0s; }
+        .snowflake:nth-child(2) { width: 4px; height: 4px; left: 20%; animation-duration: 12s; animation-delay: 2s; }
+        .snowflake:nth-child(3) { width: 2px; height: 2px; left: 30%; animation-duration: 8s; animation-delay: 4s; }
+        .snowflake:nth-child(4) { width: 5px; height: 5px; left: 40%; animation-duration: 15s; animation-delay: 1s; }
+        .snowflake:nth-child(5) { width: 3px; height: 3px; left: 50%; animation-duration: 11s; animation-delay: 3s; }
+        .snowflake:nth-child(6) { width: 4px; height: 4px; left: 60%; animation-duration: 9s; animation-delay: 5s; }
+        .snowflake:nth-child(7) { width: 2px; height: 2px; left: 70%; animation-duration: 13s; animation-delay: 0.5s; }
+        .snowflake:nth-child(8) { width: 5px; height: 5px; left: 80%; animation-duration: 10s; animation-delay: 2.5s; }
+        .snowflake:nth-child(9) { width: 3px; height: 3px; left: 90%; animation-duration: 14s; animation-delay: 4.5s; }
+        .snowflake:nth-child(10) { width: 4px; height: 4px; left: 5%; animation-duration: 11s; animation-delay: 1.5s; }
+        .snowflake:nth-child(11) { width: 2px; height: 2px; left: 15%; animation-duration: 9s; animation-delay: 3.5s; }
+        .snowflake:nth-child(12) { width: 5px; height: 5px; left: 25%; animation-duration: 12s; animation-delay: 5.5s; }
+        .snowflake:nth-child(13) { width: 3px; height: 3px; left: 35%; animation-duration: 10s; animation-delay: 0s; }
+        .snowflake:nth-child(14) { width: 4px; height: 4px; left: 45%; animation-duration: 13s; animation-delay: 2s; }
+        .snowflake:nth-child(15) { width: 2px; height: 2px; left: 55%; animation-duration: 8s; animation-delay: 4s; }
+        .snowflake:nth-child(16) { width: 5px; height: 5px; left: 65%; animation-duration: 15s; animation-delay: 1s; }
+        .snowflake:nth-child(17) { width: 3px; height: 3px; left: 75%; animation-duration: 11s; animation-delay: 3s; }
+        .snowflake:nth-child(18) { width: 4px; height: 4px; left: 85%; animation-duration: 9s; animation-delay: 5s; }
+        .snowflake:nth-child(19) { width: 2px; height: 2px; left: 95%; animation-duration: 13s; animation-delay: 0.5s; }
+        .snowflake:nth-child(20) { width: 5px; height: 5px; left: 2%; animation-duration: 10s; animation-delay: 2.5s; }
+
+
+        /* Custom scrollbar for history */
+        .history-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .history-container::-webkit-scrollbar-track {
+            background: #e0e0e0; /* Lighter track */
+            border-radius: 10px;
+        }
+
+        .history-container::-webkit-scrollbar-thumb {
+            background: #a0a0a0; /* Darker thumb */
+            border-radius: 10px;
+        }
+
+        .history-container::-webkit-scrollbar-thumb:hover {
+            background: #707070;
+        }
+
+        /* Animation for new history items */
+        @keyframes fadeInSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .history-item-new {
+            animation: fadeInSlideUp 0.5s ease-out forwards;
+        }
+
+        /* Custom alert/modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+            max-height: 90vh; /* Limit modal height */
+            overflow-y: auto; /* Enable scrolling within modal if content overflows */
+        }
+
+        .modal-overlay.show .modal-content {
+            transform: translateY(0);
+        }
+
+        /* Custom toggle switch styles */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 48px; /* Adjusted width to match image */
+            height: 24px; /* Adjusted height to match image */
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            -webkit-transition: .4s;
+            transition: .4s;
+            border-radius: 24px; /* Half of height for rounded effect */
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px; /* Adjusted size */
+            width: 18px; /* Adjusted size */
+            left: 3px; /* Adjusted position */
+            bottom: 3px; /* Adjusted position */
+            background-color: white;
+            -webkit-transition: .4s;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #ff9800; /* Orange color for active state */
+        }
+
+        input:focus + .slider {
+            box-shadow: 0 0 1px #ff9800;
+        }
+
+        input:checked + .slider:before {
+            -webkit-transform: translateX(24px); /* Adjusted translation */
+            -ms-transform: translateX(24px); /* Adjusted translation */
+            transform: translateX(24px); /* Adjusted translation */
+        }
+
+        /* Admin Panel Modal Specific Styles (Now Draggable) */
+        #adminPanelFullOverlay {
+            background: rgba(0, 0, 0, 0.95); /* Still opaque overlay for background */
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            /* No longer full width/height, but still fixed to cover screen initially */
+        }
+
+        #adminPanelFullOverlay .modal-content {
+            background: #2D3748; /* Darker background for admin panel */
+            color: #E2E8F0; /* Light text color */
+            width: 90%;
+            max-width: 500px;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            position: absolute; /* Changed to absolute for dragging */
+            top: 50%; /* Center vertically initially */
+            left: 50%; /* Center horizontally initially */
+            transform: translate(-50%, -50%); /* Adjust for centering */
+            cursor: grab; /* Indicate draggable */
+        }
+
+        #adminPanelFullOverlay .modal-content h2 {
+            cursor: grab; /* Make header specifically draggable */
+        }
+
+
+        #adminPanelFullOverlay .tab-button {
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            color: #A0AEC0; /* Gray text for inactive */
+            background: #4A5568; /* Darker gray for inactive */
+        }
+
+        #adminPanelFullOverlay .tab-button.active {
+            background: #6B46C1; /* Purple for active */
+            color: #FFFFFF;
+            box-shadow: 0 2px 8px rgba(107, 70, 193, 0.4);
+        }
+
+        #adminPanelFullOverlay .tab-content {
+            padding-top: 1.5rem;
+        }
+
+        /* Dropdown Menu Styles */
+        .dropdown-menu {
+            position: absolute;
+            top: calc(100% + 8px); /* Position below the button */
+            right: 0;
+            background-color: #2D3748; /* Dark background */
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            min-width: 160px;
+            z-index: 50; /* Above checker card, below full modal */
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: opacity 0.2s ease-out, transform 0.2s ease-out, visibility 0.2s ease-out;
+            display: none; /* Hidden by default, takes no space */
+        }
+
+        .dropdown-menu.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            display: block; /* Show it when 'show' class is present */
+        }
+
+        .dropdown-menu button {
+            display: block;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            color: #E2E8F0;
+            font-size: 0.9rem;
+            transition: background-color 0.2s ease;
+            border-radius: 0.5rem; /* Apply to individual items */
+        }
+
+        .dropdown-menu button:hover {
+            background-color: #4A5568; /* Hover color */
+        }
+
+        /* New My Subscription Modal Styles (Exact Design) */
+        #mySubscriptionModal {
+            background: rgba(0, 0, 0, 0.95); /* Full opaque background */
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+        }
+
+        #mySubscriptionModal .modal-content {
+            background: #202020; /* Dark background matching the image */
+            color: #E2E8F0;
+            width: 90%;
+            max-width: 400px; /* Adjust max-width to match image proportions */
+            padding: 1.5rem;
+            border-radius: 1rem; /* Rounded corners */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            position: relative;
+            text-align: left; /* Align text left as in image */
+        }
+
+        #mySubscriptionModal .premium-plan-box {
+            background-color: #333333; /* Darker gray for the plan box */
+            border-radius: 0.5rem; /* Rounded corners for the box */
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        #mySubscriptionModal .status-active-pill {
+            background-color: #22C55E; /* Green background for 'Active' */
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px; /* Fully rounded pill shape */
+            font-size: 0.75rem;
+            font-weight: bold;
+            display: inline-block;
+            margin-left: 0.5rem;
+        }
+        #mySubscriptionModal .status-inactive-pill {
+            background-color: #EF4444; /* Red background for 'Inactive' */
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px; /* Fully rounded pill shape */
+            font-size: 0.75rem;
+            font-weight: bold;
+            display: inline-block;
+            margin-left: 0.5rem;
+        }
+
+
+        #mySubscriptionModal .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #444444; /* Subtle separator */
+        }
+
+        #mySubscriptionModal .info-row:last-child {
+            border-bottom: none; /* No border for the last row */
+        }
+
+        /* Redeem Key Modal Styles */
+        #redeemKeyModal {
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+        }
+
+        #redeemKeyModal .modal-content {
+            background: #2D3748;
+            color: #E2E8F0;
+            width: 90%;
+            max-width: 400px;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        /* ADMP Button Icon Style */
+        #admpButton {
+            width: 60px; /* Fixed width for icon button */
+            height: 60px; /* Fixed height for icon button */
+            border-radius: 50%; /* Make it circular */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem; /* Larger icon */
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4); /* Orange shadow */
+            background: linear-gradient(135deg, #FF9800 0%, #FB8C00 100%); /* Orange gradient */
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+        }
+
+        #admpButton:hover {
+            transform: scale(1.1) translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.6);
+        }
+
+        #admpButton:focus {
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(255, 152, 0, 0.5);
+        }
+    </style>
+</head>
+<body class="relative">
+    <!-- Snowflake Container -->
+    <div class="snowflakes">
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+    </div>
+
+    <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md md:max-w-lg lg:max-w-xl my-8 transform transition-all duration-300 hover:scale-105 relative z-10 border border-gray-700">
+        <!-- Top right icons and dropdown container -->
+        <div class="absolute top-4 right-4 flex gap-4">
+            <div class="relative">
+                <button id="openMenuBtn" class="text-gray-400 hover:text-white transition-colors duration-200 relative z-20">
+                    <i class="fas fa-ellipsis-h text-xl"></i> <!-- Horizontal 3 dots -->
+                </button>
+                <!-- Dropdown Menu -->
+                <div id="dropdownMenu" class="dropdown-menu">
+                    <button id="menuMySubscription" class="px-4 py-2">My Subscription</button>
+                    <button id="menuRedeemKey" class="px-4 py-2">Redeem Key</button> <!-- Redeem Key moved here -->
+                </div>
+            </div>
+            <button class="text-gray-400 hover:text-white transition-colors duration-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Moonton Logo (SVG) -->
+        <div class="flex justify-center mb-6">
+            <svg class="w-24 h-24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 12V22H22V12L12 2Z" fill="#FF9800"/>
+                <path d="M12 2L7 7L2 12V22H12V12L12 2Z" fill="#FFA726"/>
+                <path d="M12 2L17 7L22 12V22H12V12L12 2Z" fill="#FB8C00"/>
+                <path d="M12 12L17 17L12 22L7 17L12 12Z" fill="#FFB74D"/>
+            </svg>
+        </div>
+
+        <h1 class="text-3xl font-extrabold text-center text-gray-100 mb-2 tracking-tight">
+            Moonton Proxyless Checker
+        </h1>
+        <!-- Removed: <p class="text-md text-center text-gray-400 mb-4">[ Man Power Version ]</p> -->
+
+        <!-- Subscription Status Display (Main Page - Dynamic) -->
+        <div class="bg-gray-700 rounded-lg p-4 mb-6 border border-gray-600">
+            <h3 class="text-lg font-semibold text-gray-100 mb-2">My Subscription</h3>
+            <div class="grid grid-cols-2 gap-2 text-sm text-gray-300">
+                <span>Plan:</span>
+                <span id="currentPlan" class="font-medium text-purple-400">None</span>
+                <span>Status:</span>
+                <span id="subscriptionStatus" class="font-medium text-red-400">Inactive</span>
+                <span>Expires:</span>
+                <span id="expiryDate" class="font-medium text-gray-300">N/A</span>
+                <span>Days remaining:</span>
+                <span id="daysRemaining" class="font-medium text-gray-300">N/A</span>
+            </div>
+        </div>
+
+        <!-- Toggle Section -->
+        <div class="flex justify-center items-center gap-4 mb-8">
+            <span class="text-gray-300 text-sm font-medium">Validation Only</span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="fullInfoToggle">
+                <span class="slider"></span>
+            </label>
+            <span class="text-gray-300 text-sm font-medium">Full Info</span>
+        </div>
+
+        <!-- Text Input Section -->
+        <div class="mb-6 bg-gray-700 rounded-lg p-4 border border-gray-600">
+            <textarea
+                id="textInput"
+                rows="8"
+                placeholder="Enter accounts (one per line)&#10;Format: email@gmail.com:password&#10;Example: user123@gmail.com:mypassword123&#10;another@gmail.com:securepass"
+                class="block w-full p-2 bg-gray-700 text-gray-200 border border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all duration-200 ease-in-out resize-y placeholder-gray-400"
+            ></textarea>
+            <div class="flex justify-end mt-3">
+                <button
+                    id="fixButton"
+                    class="bg-blue-600 text-white py-2 px-6 rounded-md
+                           hover:bg-blue-700 focus:outline-none focus:ring-2
+                           focus:ring-blue-500 font-medium text-sm
+                           transition-all duration-200 ease-in-out flex items-center gap-2"
+                    disabled <!-- Disabled by default -->
+                >
+                    <i class="fas fa-wrench"></i> Fix
+                </button>
+            </div>
+        </div>
+
+        <!-- Account Counter -->
+        <p id="accountCounter" class="text-gray-300 text-sm text-center mb-6">0 accounts</p>
+
+        <!-- Processing Bar Section -->
+        <div id="processingSection" class="mb-6 hidden">
+            <p class="text-gray-300 text-sm font-medium mb-2">Running check...</p>
+            <div class="w-full bg-gray-600 rounded-full h-3">
+                <div
+                    id="progressBar"
+                    class="bg-gradient-to-r from-purple-400 to-purple-600 h-3 rounded-full transition-all duration-100 ease-linear"
+                    style="width: 0%;"
+                ></div>
+            </div>
+        </div>
+
+        <!-- History Section -->
+        <div>
+            <h2 class="text-xl font-semibold text-gray-100 mb-4 border-b border-gray-700 pb-2">
+                Check History
+            </h2>
+            <div id="historyList" class="history-container max-h-48 overflow-y-auto pr-2">
+                <!-- History items will be dynamically added here -->
+                <p id="noHistoryMessage" class="text-gray-400 text-center py-4">No checks performed yet.</p>
+            </div>
+        </div>
+
+        <!-- ADMP Button (Icon) -->
+        <button id="admpButton" class="mt-8">
+            <i class="fas fa-cogs"></i>
+        </button>
+
+        <!-- Bottom Icons Section -->
+        <div class="flex justify-center gap-6 mt-8 text-gray-400 text-2xl">
+            <i class="fas fa-question-circle hover:text-white cursor-pointer transition-colors duration-200"></i>
+            <i class="fas fa-sync-alt hover:text-white cursor-pointer transition-colors duration-200"></i>
+            <!-- Placeholder for image-like icons, using Font Awesome for simplicity -->
+            <i class="fas fa-car hover:text-white cursor-pointer transition-colors duration-200"></i>
+            <i class="fas fa-cloud hover:text-white cursor-pointer transition-colors duration-200"></i>
+        </div>
+    </div>
+
+    <!-- Custom Alert/Modal -->
+    <div id="customAlertOverlay" class="modal-overlay hidden">
+        <div class="modal-content">
+            <p id="customAlertMessage" class="text-lg font-medium text-gray-800 mb-4"></p>
+            <button id="customAlertCloseBtn" class="bg-purple-600 text-white py-2 px-5 rounded-full hover:bg-purple-700 transition-colors duration-200">
+                OK
+            </button>
+        </div>
+    </div>
+
+    <!-- NEW: My Subscription Exact Design Modal (Dynamic Content) -->
+    <div id="mySubscriptionModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button id="closeMySubscriptionModalBtn" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors duration-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            <h2 class="text-xl font-semibold text-gray-100 mb-6 text-center">My Subscription</h2>
+
+            <div class="premium-plan-box">
+                <h3 class="text-lg font-bold text-gray-100 flex items-center">
+                    <span id="mySubModalPlan">Premium Plan</span>
+                    <span id="mySubModalStatusPill" class="status-active-pill">Active</span>
+                </h3>
+            </div>
+
+            <div class="info-row">
+                <span class="text-gray-300">Status:</span>
+                <span id="mySubModalStatusText" class="text-gray-100 font-medium">Subscription active</span>
+            </div>
+            <div class="info-row">
+                <span class="text-gray-300">Expires:</span>
+                <span id="mySubModalExpiryDate" class="text-gray-100 font-medium">August 2, 2025</span>
+            </div>
+            <div class="info-row">
+                <span class="text-gray-300">Days remaining:</span>
+                <span id="mySubModalDaysRemaining" class="text-gray-100 font-medium">30 days</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: Redeem Key Modal (Full Screen) -->
+    <div id="redeemKeyModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button id="closeRedeemKeyModalBtn" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors duration-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            <h2 class="text-2xl font-bold text-gray-100 mb-6 text-center">Redeem Key</h2>
+            <div class="mb-4">
+                <label for="redeemKeyInput" class="block text-gray-300 text-sm font-medium mb-2">Enter Key:</label>
+                <input type="text" id="redeemKeyInput" placeholder="Paste your key here" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-gray-200 focus:outline-none focus:ring-1 focus:ring-purple-500">
+            </div>
+            <button id="redeemKeyBtn" class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors duration-200">
+                Redeem Key
+            </button>
+        </div>
+    </div>
+
+    <!-- Admin Panel Full-Screen Modal (for Generate Key & My Subscription Dynamic) -->
+    <div id="adminPanelFullOverlay" class="modal-overlay hidden">
+        <div id="adminModalContent" class="modal-content">
+            <button id="closeAdminPanelBtn" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors duration-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            <h2 id="adminModalHeader" class="text-2xl font-bold text-gray-100 mb-6 text-center">Subscription Admin Panel</h2>
+
+            <!-- Tabs for My Subscription, Generate Key -->
+            <div class="flex justify-center gap-2 mb-6">
+                <button id="tabMySubscriptionAdmin" class="tab-button active">My Subscription</button>
+                <button id="tabGenerateKey" class="tab-button">PANEL</button> <!-- Changed to PANEL -->
+            </div>
+
+            <!-- Tab Content: My Subscription (Dynamic - within Admin Panel) -->
+            <div id="contentMySubscriptionAdmin" class="tab-content">
+                <h3 class="text-xl font-semibold text-gray-100 mb-4">Current Subscription</h3>
+                <div class="grid grid-cols-2 gap-3 text-sm text-gray-300">
+                    <span class="font-medium">Plan:</span>
+                    <span id="adminCurrentPlan" class="font-bold text-purple-400">None</span>
+                    <span class="font-medium">Status:</span>
+                    <span id="adminSubscriptionStatus" class="font-bold text-red-400">Inactive</span>
+                    <span class="font-medium">Expires:</span>
+                    <span id="adminExpiryDate" class="font-bold text-gray-300">N/A</span>
+                    <span class="font-medium">Days remaining:</span>
+                    <span id="adminDaysRemaining" class="font-bold text-gray-300">N/A</span>
+                </div>
+            </div>
+
+            <!-- Tab Content: Generate Key -->
+            <div id="contentGenerateKey" class="tab-content hidden">
+                <h3 class="text-xl font-semibold text-gray-100 mb-4">Generate Key Panel</h3> <!-- Changed heading -->
+                <div class="mb-4">
+                    <label for="planSelect" class="block text-gray-300 text-sm font-medium mb-2">Select Plan:</label>
+                    <select id="planSelect" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-gray-200 focus:outline-none focus:ring-1 focus:ring-purple-500">
+                        <option value="Basic">Basic</option>
+                        <option value="VIP">VIP</option>
+                        <option value="Boss">Boss</option>
+                        <option value="Mafia">Mafia</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label for="expiryDaysInput" class="block text-gray-300 text-sm font-medium mb-2">Time Expire (Days):</label>
+                    <input type="number" id="expiryDaysInput" value="7" min="1" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-gray-200 focus:outline-none focus:ring-1 focus:ring-purple-500">
+                </div>
+                <div class="mb-4">
+                    <label for="deviceLimitInput" class="block text-gray-300 text-sm font-medium mb-2">Device Limit:</label>
+                    <input type="number" id="deviceLimitInput" value="1" min="1" class="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-gray-200 focus:outline-none focus:ring-1 focus:ring-purple-500">
+                </div>
+                <button id="generateKeyBtn" class="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors duration-200">
+                    Generate Key
+                </button>
+                <div id="generatedKeyDisplay" class="mt-4 p-3 bg-gray-700 rounded-md border border-gray-600 text-gray-200 text-center text-sm break-all hidden whitespace-pre-wrap">
+                    <span id="generatedKeyText" class="font-mono"></span>
+                    <button id="copyKeyBtn" class="ml-2 text-blue-400 hover:text-blue-300 text-xs">Copy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // Get DOM elements (main checker)
+        const textInput = document.getElementById('textInput');
+        const fixButton = document.getElementById('fixButton');
+        const accountCounter = document.getElementById('accountCounter');
+        const processingSection = document.getElementById('processingSection');
+        const progressBar = document.getElementById('progressBar');
+        const historyList = document.getElementById('historyList');
+        const noHistoryMessage = document.getElementById('noHistoryMessage');
+        const customAlertOverlay = document.getElementById('customAlertOverlay');
+        const customAlertMessage = document.getElementById('customAlertMessage');
+        const customAlertCloseBtn = document.getElementById('customAlertCloseBtn');
+        const fullInfoToggle = document.getElementById('fullInfoToggle');
+        const admpButton = document.getElementById('admpButton'); // ADMP Button
+
+        // Subscription status display elements (Main Page)
+        const currentPlanDisplay = document.getElementById('currentPlan');
+        const subscriptionStatusDisplay = document.getElementById('subscriptionStatus');
+        const expiryDateDisplay = document.getElementById('expiryDate');
+        const daysRemainingDisplay = document.getElementById('daysRemaining');
+
+
+        // Get DOM elements (dropdown menu)
+        const openMenuBtn = document.getElementById('openMenuBtn');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+        const menuMySubscription = document.getElementById('menuMySubscription');
+        const menuRedeemKey = document.getElementById('menuRedeemKey'); // Redeem Key moved here
+
+        // Get DOM elements (NEW My Subscription Modal - Static from image)
+        const mySubscriptionModal = document.getElementById('mySubscriptionModal');
+        const closeMySubscriptionModalBtn = document.getElementById('closeMySubscriptionModalBtn');
+        const mySubModalPlan = document.getElementById('mySubModalPlan');
+        const mySubModalStatusPill = document.getElementById('mySubModalStatusPill');
+        const mySubModalStatusText = document.getElementById('mySubModalStatusText');
+        const mySubModalExpiryDate = document.getElementById('mySubModalExpiryDate');
+        const mySubModalDaysRemaining = document.getElementById('mySubModalDaysRemaining');
+
+
+        // Get DOM elements (NEW Redeem Key Modal)
+        const redeemKeyModal = document.getElementById('redeemKeyModal');
+        const closeRedeemKeyModalBtn = document.getElementById('closeRedeemKeyModalBtn');
+        const redeemKeyInput = document.getElementById('redeemKeyInput');
+        const redeemKeyBtn = document.getElementById('redeemKeyBtn');
+
+        // Get DOM elements (Admin Panel Modal - Dynamic with tabs)
+        const adminPanelFullOverlay = document.getElementById('adminPanelFullOverlay'); // The overlay
+        const adminModalContent = document.getElementById('adminModalContent'); // The draggable content
+        const adminModalHeader = document.getElementById('adminModalHeader'); // The draggable header
+        const closeAdminPanelBtn = document.getElementById('closeAdminPanelBtn');
+
+        const tabMySubscriptionAdmin = document.getElementById('tabMySubscriptionAdmin'); // Tab inside Admin Panel
+        const tabGenerateKey = document.getElementById('tabGenerateKey');
+
+        const contentMySubscriptionAdmin = document.getElementById('contentMySubscriptionAdmin'); // Content for My Sub tab in Admin Panel
+        const contentGenerateKey = document.getElementById('contentGenerateKey');
+
+        const adminCurrentPlan = document.getElementById('adminCurrentPlan');
+        const adminSubscriptionStatus = document.getElementById('adminSubscriptionStatus');
+        const adminExpiryDate = document.getElementById('adminExpiryDate');
+        const adminDaysRemaining = document.getElementById('adminDaysRemaining');
+
+        const planSelect = document.getElementById('planSelect');
+        const expiryDaysInput = document.getElementById('expiryDaysInput'); // New input
+        const deviceLimitInput = document.getElementById('deviceLimitInput'); // New input
+        const generateKeyBtn = document.getElementById('generateKeyBtn');
+        const generatedKeyDisplay = document.getElementById('generatedKeyDisplay');
+        const generatedKeyText = document.getElementById('generatedKeyText');
+        const copyKeyBtn = document.getElementById('copyKeyBtn');
+
+
+        // Global state for subscription (dynamic for checker access and admin panel display)
+        let currentSubscription = {
+            plan: 'None',
+            expiryDate: null, // Date object
+            isActive: false
+        };
+
+        // Simulate a database of generated keys
+        // Added deviceLimit and redeemedDevicesCount
+        let generatedKeys = []; // { key: '...', plan: '...', expiry: Date, deviceLimit: number, redeemedDevicesCount: number }
+
+        // Array to store history items for main checker
+        let history = [];
+
+        // Regex for email@gmail.com:password format
+        const GMAIL_PASS_REGEX = /^[a-zA-Z0-9._%+-]+@gmail\.com:[a-zA-Z0-9!@#$%^&*()_+-=\[\]{};':"|,.<>\/?`~]+$/;
+
+        /**
+         * Displays a custom alert modal.
+         * @param {string} message - The message to display in the alert.
+         */
+        function showAlert(message) {
+            customAlertMessage.textContent = message;
+            customAlertOverlay.classList.remove('hidden');
+            // Use setTimeout to ensure the transition plays
+            setTimeout(() => customAlertOverlay.classList.add('show'), 10);
+        }
+
+        /**
+         * Hides the custom alert modal.
+         */
+        function hideAlert() {
+            customAlertOverlay.classList.remove('show');
+            // Use setTimeout to ensure the transition plays before hiding completely
+            setTimeout(() => customAlertOverlay.classList.add('hidden'), 300);
+        }
+
+        // Event listener for custom alert close button
+        customAlertCloseBtn.addEventListener('click', hideAlert);
+
+        /**
+         * Updates the account counter based on the number of non-empty lines in the text input.
+         */
+        function updateAccountCounter() {
+            const lines = textInput.value.split('\n').filter(line => line.trim() !== '');
+            accountCounter.textContent = `${lines.length} accounts`;
+        }
+
+        /**
+         * Simulates the ML checking process for text input.
+         */
+        async function simulateMLCheck() {
+            // Check subscription status before proceeding
+            const now = new Date();
+            if (!currentSubscription.isActive || (currentSubscription.expiryDate && currentSubscription.expiryDate <= now)) {
+                showAlert('Subscription required or expired! Please activate a subscription to use the checker.');
+                return;
+            }
+
+            const inputText = textInput.value.trim();
+            const lines = inputText.split('\n').filter(line => line.trim() !== '');
+
+            if (lines.length === 0) {
+                showAlert('Please enter some accounts to check!');
+                return;
+            }
+
+            let allLinesValid = true;
+            for (const line of lines) {
+                if (!GMAIL_PASS_REGEX.test(line)) {
+                    allLinesValid = false;
+                    break;
+                }
+            }
+
+            // Show processing section and reset progress bar
+            processingSection.classList.remove('hidden');
+            progressBar.style.width = '0%';
+            fixButton.disabled = true; // Disable button during processing
+            textInput.disabled = true; // Disable text input during processing
+
+            // Initial 10% delay before progress starts (simulated as 300ms)
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            let progress = 0;
+            const duration = 2200; // Total duration after initial delay
+            const intervalTime = 50; // Update every 50ms
+            const increment = (100 / (duration / intervalTime));
+
+            // Simulate progress bar update
+            const progressInterval = setInterval(() => {
+                progress += increment;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(progressInterval);
+                }
+                progressBar.style.width = `${progress}%`;
+            }, intervalTime);
+
+            // Simulate processing time
+            await new Promise(resolve => setTimeout(resolve, duration));
+
+            let isSuccess;
+            let statusMessage = '';
+
+            if (!allLinesValid) {
+                isSuccess = false;
+                statusMessage = 'Invalid Format';
+            } else {
+                // Determine success or failure randomly (50% chance) for valid inputs
+                isSuccess = Math.random() > 0.5;
+            }
+
+            const status = isSuccess ? 'success' : 'unsuccessful';
+            const timestamp = new Date().toLocaleString();
+
+            // Add to history
+            history.unshift({ // Add to the beginning of the array
+                inputPreview: inputText.substring(0, 30) + (inputText.length > 30 ? '...' : ''), // Display first 30 chars
+                status: status,
+                timestamp: timestamp,
+                errorMessage: statusMessage // Store error message if any
+            });
+
+            // Update UI
+            renderHistory();
+            processingSection.classList.add('hidden'); // Hide processing section
+            // Re-enable button and text input based on current subscription status
+            updateSubscriptionStatusUI();
+            textInput.value = ''; // Clear text input
+            updateAccountCounter(); // Update counter after clearing input
+        }
+
+        /**
+         * Renders the history array to the UI.
+         */
+        function renderHistory() {
+            historyList.innerHTML = ''; // Clear existing history
+
+            if (history.length === 0) {
+                historyList.appendChild(noHistoryMessage);
+                noHistoryMessage.classList.remove('hidden');
+            } else {
+                noHistoryMessage.classList.add('hidden');
+                history.forEach(item => {
+                    const historyItem = document.createElement('div');
+                    historyItem.classList.add(
+                        'flex', 'items-center', 'justify-between', 'p-3', 'mb-2',
+                        'rounded-lg', 'shadow-sm', 'transition-all', 'duration-200', 'ease-in-out',
+                        'transform', 'hover:scale-[1.01]', 'history-item-new' /* Add new item animation class */
+                    );
+
+                    // Apply status-specific styling
+                    if (item.status === 'success') {
+                        historyItem.classList.add('bg-green-500', 'bg-opacity-20', 'border', 'border-green-400');
+                        historyItem.innerHTML = `
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span class="font-medium text-gray-100">${item.inputPreview}</span>
+                            </div>
+                            <span class="text-sm text-green-400 font-semibold">Success</span>
+                            <span class="text-xs text-gray-400">${item.timestamp}</span>
+                        `;
+                    } else {
+                        historyItem.classList.add('bg-red-500', 'bg-opacity-20', 'border', 'border-red-400');
+                        historyItem.innerHTML = `
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2A9 9 0 111 10a9 9 0 0118 0z"></path>
+                                </svg>
+                                <span class="font-medium text-gray-100">${item.inputPreview}</span>
+                            </div>
+                            <span class="text-sm text-red-400 font-semibold">${item.errorMessage || 'Unsuccessful'}</span>
+                            <span class="text-xs text-gray-400">${item.timestamp}</span>
+                        `;
+                    }
+                    historyList.appendChild(historyItem);
+                });
+            }
+        }
+
+        /**
+         * Updates the subscription status display on the main panel and admin panel's My Subscription tab.
+         * This version reflects the actual dynamic subscription status.
+         */
+        function updateSubscriptionStatusUI() {
+            const now = new Date();
+            let planText, statusText, statusClass, expiryText, daysText;
+
+            if (currentSubscription.isActive && currentSubscription.expiryDate && currentSubscription.expiryDate > now) {
+                const diffTime = Math.abs(currentSubscription.expiryDate - now);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                planText = currentSubscription.plan;
+                statusText = 'Active';
+                statusClass = 'text-green-400';
+                expiryText = currentSubscription.expiryDate.toLocaleDateString();
+                daysText = `${diffDays} days`;
+                fixButton.disabled = false; // Enable checker button
+            } else {
+                currentSubscription.isActive = false; // Ensure it's marked inactive if expired or not set
+                planText = 'None';
+                statusText = 'Inactive';
+                statusClass = 'text-red-400';
+                expiryText = 'N/A';
+                daysText = 'N/A';
+                fixButton.disabled = true; // Disable checker button
+            }
+
+            // Main UI
+            currentPlanDisplay.textContent = planText;
+            subscriptionStatusDisplay.textContent = statusText;
+            subscriptionStatusDisplay.className = `font-medium ${statusClass}`; // Reset class and apply new
+            expiryDateDisplay.textContent = expiryText;
+            daysRemainingDisplay.textContent = daysText;
+
+            // Admin panel's My Subscription tab (dynamic)
+            adminCurrentPlan.textContent = planText;
+            adminSubscriptionStatus.textContent = statusText;
+            adminSubscriptionStatus.className = `font-bold ${statusClass}`;
+            adminExpiryDate.textContent = expiryText;
+            adminDaysRemaining.textContent = daysText;
+
+            // My Subscription Modal (dynamic)
+            mySubModalPlan.textContent = planText;
+            mySubModalStatusPill.textContent = statusText;
+            mySubModalStatusPill.classList.remove('status-active-pill', 'status-inactive-pill'); // Remove existing
+            mySubModalStatusPill.classList.add(statusText === 'Active' ? 'status-active-pill' : 'status-inactive-pill');
+            mySubModalStatusText.textContent = `Subscription ${statusText.toLowerCase()}`;
+            mySubModalExpiryDate.textContent = expiryText;
+            mySubModalDaysRemaining.textContent = daysText;
+        }
+
+        /**
+         * Switches active tab in the Admin Panel modal.
+         * @param {string} tabName - The name of the tab to activate ('mySubscriptionAdmin', 'generateKey').
+         */
+        function switchAdminTab(tabName) {
+            // Deactivate all tab buttons and hide all tab contents
+            tabMySubscriptionAdmin.classList.remove('active');
+            tabGenerateKey.classList.remove('active');
+
+            contentMySubscriptionAdmin.classList.add('hidden');
+            contentGenerateKey.classList.add('hidden');
+
+            // Activate selected tab button and show selected tab content
+            if (tabName === 'mySubscriptionAdmin') {
+                tabMySubscriptionAdmin.classList.add('active');
+                contentMySubscriptionAdmin.classList.remove('hidden');
+                updateSubscriptionStatusUI(); // Refresh dynamic status when viewing this tab
+            } else if (tabName === 'generateKey') {
+                tabGenerateKey.classList.add('active');
+                contentGenerateKey.classList.remove('hidden');
+                generatedKeyDisplay.classList.add('hidden'); // Hide previous generated key
+            }
+        }
+
+        /**
+         * Generates a random alphanumeric key.
+         * @param {number} length - The length of the key.
+         * @returns {string} The generated key.
+         */
+        function generateRandomKey(length) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        /**
+         * Handles key generation logic.
+         */
+        generateKeyBtn.addEventListener('click', () => {
+            const selectedPlan = planSelect.value;
+            const expiryDays = parseInt(expiryDaysInput.value);
+            const deviceLimit = parseInt(deviceLimitInput.value);
+
+            if (isNaN(expiryDays) || expiryDays <= 0) {
+                showAlert('Please enter a valid number of expiry days (must be 1 or more).');
+                return;
+            }
+            if (isNaN(deviceLimit) || deviceLimit <= 0) {
+                showAlert('Please enter a valid device limit (must be 1 or more).');
+                return;
+            }
+
+            const key = generateRandomKey(16); // 16-character key
+
+            // Expiry date is calculated at generation, but redemption starts the actual duration for the user
+            const generatedExpiryDate = new Date();
+            generatedExpiryDate.setDate(generatedExpiryDate.getDate() + expiryDays);
+
+
+            generatedKeys.push({
+                key: key,
+                plan: selectedPlan,
+                expiry: generatedExpiryDate, // This expiry is for the key itself, not user's subscription start
+                deviceLimit: deviceLimit,
+                redeemedDevicesCount: 0 // Initialize redeemed count
+            });
+
+            // Format the generated key display
+            generatedKeyText.textContent = `GENERATE KEY\nKEY: ${key}\nDURATION: ${expiryDays} Days (starts on redeem)\nDEVICE : ${deviceLimit}`;
+            generatedKeyDisplay.classList.remove('hidden');
+            showAlert(`Key generated for ${selectedPlan} plan! Copy it.`);
+        });
+
+        /**
+         * Copies the generated key to the clipboard.
+         */
+        copyKeyBtn.addEventListener('click', () => {
+            const keyToCopy = generatedKeyText.textContent;
+            // Using document.execCommand('copy') for better iframe compatibility
+            const tempInput = document.createElement('textarea');
+            tempInput.value = keyToCopy;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            showAlert('Key copied to clipboard!');
+        });
+
+        /**
+         * Handles key redemption logic.
+         */
+        redeemKeyBtn.addEventListener('click', () => {
+            const inputKey = redeemKeyInput.value.trim();
+            const keyObject = generatedKeys.find(k => k.key === inputKey);
+
+            if (!keyObject) {
+                showAlert('Invalid key. Please try again.');
+                return;
+            }
+
+            if (keyObject.redeemedDevicesCount >= keyObject.deviceLimit) {
+                showAlert('This key has reached its device redemption limit.');
+                return;
+            }
+
+            const now = new Date();
+            // The key itself might have an expiry from generation, but the user's subscription starts now
+            // If the key was generated with an expiry date, we should still respect it for the key's validity
+            if (keyObject.expiry && keyObject.expiry <= now) {
+                showAlert('This key has expired before redemption.');
+                return;
+            }
+
+            // If all checks pass, redeem the key
+            keyObject.redeemedDevicesCount++; // Increment redeemed count
+
+            // Set current user subscription based on the key's properties
+            currentSubscription.plan = keyObject.plan;
+            // The user's subscription expiry is calculated from *now* based on the key's original duration
+            const userExpiryDate = new Date();
+            const originalExpiryDays = Math.ceil( (keyObject.expiry.getTime() - new Date(keyObject.expiry.getFullYear(), keyObject.expiry.getMonth(), keyObject.expiry.getDate()).getTime()) / (1000 * 60 * 60 * 24) ); // Calculate original days from key's expiry
+            userExpiryDate.setDate(userExpiryDate.getDate() + originalExpiryDays);
+            currentSubscription.expiryDate = userExpiryDate;
+            currentSubscription.isActive = true; // Will be re-evaluated by updateSubscriptionStatusUI
+
+            showAlert(`Key redeemed successfully! You now have the ${currentSubscription.plan} plan.`);
+            redeemKeyInput.value = ''; // Clear input
+            updateSubscriptionStatusUI(); // Update UI immediately
+            closeRedeemKeyModalBtn.click(); // Close the redeem modal
+        });
+
+        // --- Draggable Admin Panel Logic ---
+        let isDragging = false;
+        let offsetX, offsetY;
+
+        adminModalHeader.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            offsetX = e.clientX - adminModalContent.getBoundingClientRect().left;
+            offsetY = e.clientY - adminModalContent.getBoundingClientRect().top;
+            adminModalContent.style.cursor = 'grabbing';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            adminModalContent.style.left = `${e.clientX - offsetX}px`;
+            adminModalContent.style.top = `${e.clientY - offsetY}px`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            adminModalContent.style.cursor = 'grab';
+        });
+        // --- End Draggable Admin Panel Logic ---
+
+
+        // Event Listeners (main checker)
+        fixButton.addEventListener('click', simulateMLCheck);
+        textInput.addEventListener('input', updateAccountCounter);
+        admpButton.addEventListener('click', () => {
+            adminPanelFullOverlay.classList.remove('hidden');
+            setTimeout(() => adminPanelFullOverlay.classList.add('show'), 10);
+            switchAdminTab('mySubscriptionAdmin'); // Default to My Subscription tab in Admin Panel
+        });
+
+        // Event Listeners (dropdown menu)
+        openMenuBtn.addEventListener('click', (event) => {
+            dropdownMenu.classList.toggle('show');
+            event.stopPropagation(); // Prevent click on body from closing immediately
+        });
+
+        // Close dropdown if clicked outside
+        document.addEventListener('click', (event) => {
+            if (!dropdownMenu.contains(event.target) && !openMenuBtn.contains(event.target)) {
+                dropdownMenu.classList.remove('show');
+            }
+        });
+
+        // Event Listener for opening the NEW My Subscription Modal (Static Design)
+        menuMySubscription.addEventListener('click', () => {
+            dropdownMenu.classList.remove('show'); // Hide dropdown
+            mySubscriptionModal.classList.remove('hidden'); // Show the new modal
+            setTimeout(() => mySubscriptionModal.classList.add('show'), 10);
+            updateSubscriptionStatusUI(); // Update content when opened
+        });
+
+        // Event Listener for opening the NEW Redeem Key Modal
+        menuRedeemKey.addEventListener('click', () => {
+            dropdownMenu.classList.remove('show'); // Hide dropdown
+            redeemKeyModal.classList.remove('hidden'); // Show the redeem key modal
+            setTimeout(() => redeemKeyModal.classList.add('show'), 10);
+        });
+
+
+        // Event Listener for closing the NEW My Subscription Modal
+        closeMySubscriptionModalBtn.addEventListener('click', () => {
+            mySubscriptionModal.classList.remove('show');
+            setTimeout(() => mySubscriptionModal.classList.add('hidden'), 300);
+        });
+
+        // Event Listener for closing the NEW Redeem Key Modal
+        closeRedeemKeyModalBtn.addEventListener('click', () => {
+            redeemKeyModal.classList.remove('show');
+            setTimeout(() => redeemKeyModal.classList.add('hidden'), 300);
+        });
+
+        // Event Listener for closing the Admin Panel Modal
+        closeAdminPanelBtn.addEventListener('click', () => {
+            adminPanelFullOverlay.classList.remove('show');
+            setTimeout(() => adminPanelFullOverlay.classList.add('hidden'), 300);
+        });
+
+        // Event Listeners for tabs inside Admin Panel
+        tabMySubscriptionAdmin.addEventListener('click', () => switchAdminTab('mySubscriptionAdmin'));
+        tabGenerateKey.addEventListener('click', () => switchAdminTab('generateKey'));
+
+        // Initial setup
+        updateAccountCounter();
+        updateSubscriptionStatusUI(); // Set initial subscription status (inactive by default, will update on redeem)
+        // Set up an interval to periodically check and update subscription status
+        setInterval(updateSubscriptionStatusUI, 1000 * 60); // Check every minute
+    </script>
+</body>
+</html>
